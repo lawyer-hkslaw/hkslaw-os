@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>HKS Law — Operating System v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;900&family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<style>
+:root {
+  --gold:#C9A84C;--gold-light:#E8C96A;--gold-dim:rgba(201,168,76,0.13);--gold-border:rgba(201,168,76,0.28);
+  --ink:#0A0B08;--ink2:#141510;--ink3:#1E1F1A;
+  --surface:#111210;--surface2:#181915;--surface3:#1F201B;--surface4:#252620;
+  --text:#EDE9DC;--text2:#A8A59A;--text3:#6A6760;
+  --green:#4CAF7D;--green-bg:rgba(76,175,125,0.11);
+  --red:#E05C5C;--red-bg:rgba(224,92,92,0.11);
+  --blue:#5B9BD5;--blue-bg:rgba(91,155,213,0.11);
+  --amber:#E8A84C;--amber-bg:rgba(232,168,76,0.11);
+  --purple:#9B7FD4;--purple-bg:rgba(155,127,212,0.11);
+  --teal:#3EC9C9;--teal-bg:rgba(62,201,201,0.11);
+  --border:rgba(255,255,255,0.065);--radius:10px;--radius-lg:14px;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;overflow:hidden;}
+body{font-family:'DM Sans',sans-serif;background:var(--ink);color:var(--text);display:flex;}
+
+/* ─── SIDEBAR ─── */
+.sidebar{width:230px;min-width:230px;height:100vh;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto;flex-shrink:0;}
+.logo{padding:18px 18px 14px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--surface);z-index:10;}
+.logo-name{font-family:'Playfair Display',serif;font-size:17px;font-weight:700;color:var(--gold);}
+.logo-sub{font-size:9px;color:var(--text3);letter-spacing:.14em;text-transform:uppercase;margin-top:2px;}
+.sidebar-nav{flex:1;padding:10px 0;}
+.nav-section{padding:10px 16px 4px;font-size:9.5px;color:var(--text3);letter-spacing:.12em;text-transform:uppercase;}
+.nav-item{display:flex;align-items:center;gap:9px;padding:8px 16px;cursor:pointer;transition:all .13s;border-left:2px solid transparent;font-size:12.5px;color:var(--text2);}
+.nav-item:hover{background:var(--surface2);color:var(--text);}
+.nav-item.active{background:var(--gold-dim);border-left-color:var(--gold);color:var(--gold);}
+.nav-icon{font-size:14px;width:17px;text-align:center;}
+.nav-badge{margin-left:auto;background:var(--red);color:#fff;font-size:9px;padding:2px 5px;border-radius:20px;font-weight:700;}
+.nav-badge-g{background:var(--green);}
+.nav-badge-a{background:var(--amber);}
+.sidebar-footer{padding:12px 16px;border-top:1px solid var(--border);flex-shrink:0;}
+.sync-status{font-size:10px;padding:5px 10px;border-radius:20px;text-align:center;margin-bottom:6px;}
+.sync-ok{background:var(--green-bg);color:var(--green);border:1px solid rgba(76,175,125,.25);}
+.sync-warn{background:var(--amber-bg);color:var(--amber);border:1px solid rgba(232,168,76,.25);}
+
+/* ─── MAIN ─── */
+.main{flex:1;display:flex;flex-direction:column;height:100vh;overflow:hidden;}
+.topbar{padding:14px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--surface);flex-shrink:0;}
+.page-title{font-family:'Playfair Display',serif;font-size:19px;font-weight:600;color:var(--text);}
+.topbar-right{display:flex;align-items:center;gap:10px;}
+.content-wrap{flex:1;overflow-y:auto;padding:24px;}
+.section{display:none;}
+.section.active{display:block;}
+
+/* ─── COMPONENTS ─── */
+.btn{padding:8px 14px;border-radius:var(--radius);border:none;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:12.5px;font-weight:500;transition:all .14s;display:inline-flex;align-items:center;gap:6px;}
+.btn-gold{background:var(--gold);color:var(--ink);}.btn-gold:hover{background:var(--gold-light);}
+.btn-ghost{background:transparent;border:1px solid var(--border);color:var(--text2);}.btn-ghost:hover{border-color:var(--gold-border);color:var(--text);}
+.btn-green{background:var(--green-bg);border:1px solid rgba(76,175,125,.3);color:var(--green);}
+.btn-blue{background:var(--blue-bg);border:1px solid rgba(91,155,213,.3);color:var(--blue);}
+.btn-red{background:var(--red-bg);border:1px solid rgba(224,92,92,.3);color:var(--red);}
+.btn-purple{background:var(--purple-bg);border:1px solid rgba(155,127,212,.3);color:var(--purple);}
+.btn-sm{padding:5px 11px;font-size:11.5px;}
+.card{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:18px;}
+.card-gold{border-color:var(--gold-border);}
+.card-title{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:12px;}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;}
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+.grid-5{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;}
+.metric-card{background:var(--surface3);border:1px solid var(--border);border-radius:var(--radius);padding:14px;}
+.metric-label{font-size:10px;color:var(--text3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:5px;}
+.metric-value{font-family:'Playfair Display',serif;font-size:26px;font-weight:700;color:var(--text);line-height:1;}
+.metric-sub{font-size:10px;color:var(--text3);margin-top:4px;}
+.tag{display:inline-flex;align-items:center;padding:2px 7px;border-radius:20px;font-size:9.5px;font-weight:600;letter-spacing:.04em;}
+.tag-lawyer{background:var(--red-bg);color:var(--red);border:1px solid rgba(224,92,92,.2);}
+.tag-staff{background:var(--green-bg);color:var(--green);border:1px solid rgba(76,175,125,.2);}
+.tag-auto{background:var(--blue-bg);color:var(--blue);border:1px solid rgba(91,155,213,.2);}
+.tag-ai{background:var(--amber-bg);color:var(--amber);border:1px solid rgba(232,168,76,.2);}
+.tag-overdue{background:var(--red-bg);color:var(--red);}
+.tag-ok{background:var(--green-bg);color:var(--green);}
+.divider{height:1px;background:var(--border);margin:16px 0;}
+.form-group{margin-bottom:12px;}
+.form-label{font-size:11px;color:var(--text3);margin-bottom:5px;display:block;letter-spacing:.04em;}
+textarea,input[type=text],input[type=email],input[type=number],input[type=date],select{width:100%;background:var(--surface3);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-family:'DM Sans',sans-serif;font-size:12.5px;padding:9px 11px;outline:none;transition:border-color .14s;}
+textarea{resize:vertical;line-height:1.6;}
+textarea:focus,input:focus,select:focus{border-color:var(--gold-border);}
+select option{background:var(--ink2);}
+.chip{display:inline-flex;align-items:center;padding:4px 9px;border-radius:20px;font-size:10.5px;font-weight:500;border:1px solid var(--border);color:var(--text2);cursor:pointer;transition:all .13s;}
+.chip:hover,.chip.active{background:var(--gold-dim);border-color:var(--gold-border);color:var(--gold);}
+.progress-bar{height:4px;background:var(--surface3);border-radius:2px;overflow:hidden;}
+.progress-fill{height:100%;background:var(--gold);border-radius:2px;transition:width .6s ease;}
+.search-box{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:7px 12px;display:flex;align-items:center;gap:8px;min-width:220px;}
+.search-box input{background:none;border:none;color:var(--text);font-family:'DM Sans',sans-serif;font-size:12.5px;outline:none;width:100%;}
+.ai-response{background:var(--surface3);border:1px solid var(--gold-border);border-radius:var(--radius);padding:14px;font-size:12.5px;line-height:1.75;color:var(--text2);white-space:pre-wrap;}
+.dots span{display:inline-block;width:4px;height:4px;border-radius:50%;background:var(--gold);margin:0 2px;animation:bounce .8s infinite;}
+.dots span:nth-child(2){animation-delay:.15s;}.dots span:nth-child(3){animation-delay:.3s;}
+@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+.compliance-item{padding:10px 12px;border-left:3px solid transparent;border-radius:0 var(--radius) var(--radius) 0;margin-bottom:7px;background:var(--surface3);font-size:12px;}
+.compliance-item.ok{border-left-color:var(--green);}.compliance-item.warn{border-left-color:var(--amber);}.compliance-item.alert{border-left-color:var(--red);}
+.task-item{display:flex;align-items:flex-start;gap:10px;padding:11px;border-radius:var(--radius);border:1px solid var(--border);margin-bottom:7px;background:var(--surface3);transition:border-color .13s;}
+.task-item:hover{border-color:var(--gold-border);}
+.task-item.done{opacity:.45;}
+.task-check{width:18px;height:18px;border-radius:4px;border:1.5px solid var(--text3);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px;transition:all .13s;font-size:10px;}
+.task-check.checked{background:var(--gold);border-color:var(--gold);color:var(--ink);}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:500;display:none;align-items:center;justify-content:center;padding:20px;}
+.modal-overlay.open{display:flex;}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);width:100%;max-width:600px;max-height:88vh;overflow-y:auto;}
+.modal-header{padding:18px 22px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.modal-title{font-family:'Playfair Display',serif;font-size:17px;color:var(--text);}
+.modal-close{background:none;border:none;color:var(--text3);font-size:19px;cursor:pointer;}
+.modal-body{padding:22px;}
+.modal-footer{padding:14px 22px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;}
+.toast{position:fixed;bottom:20px;right:20px;background:var(--surface2);border:1px solid var(--gold-border);border-radius:var(--radius);padding:10px 14px;font-size:12.5px;color:var(--text);z-index:999;display:none;animation:slideUp .3s ease;max-width:340px;}
+@keyframes slideUp{from{transform:translateY(16px);opacity:0}to{transform:translateY(0);opacity:1}}
+::-webkit-scrollbar{width:3px;height:3px;}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+
+/* ─── GROWTH HUB TABS ─── */
+.tab-bar{display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:20px;overflow-x:auto;}
+.tab-btn{padding:9px 16px;font-size:12px;font-weight:500;color:var(--text3);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;transition:all .13s;}
+.tab-btn:hover{color:var(--text2);}
+.tab-btn.active{color:var(--gold);border-bottom-color:var(--gold);}
+.tab-panel{display:none;}.tab-panel.active{display:block;}
+
+/* ─── SCORE RING ─── */
+.score-ring{position:relative;width:80px;height:80px;flex-shrink:0;}
+.score-ring svg{transform:rotate(-90deg);}
+.score-ring-val{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+.score-num{font-family:'Playfair Display',serif;font-size:20px;font-weight:700;color:var(--text);line-height:1;}
+.score-lbl{font-size:9px;color:var(--text3);margin-top:2px;}
+
+/* ─── PLAYBOOK ─── */
+.playbook-item{background:var(--surface3);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:8px;cursor:pointer;transition:border-color .13s;}
+.playbook-item:hover{border-color:var(--gold-border);}
+.playbook-q{font-size:13px;font-weight:500;color:var(--text);}
+.playbook-a{font-size:12px;color:var(--text2);line-height:1.6;margin-top:8px;display:none;}
+.playbook-a.open{display:block;}
+
+/* ─── FIREBASE STATUS ─── */
+.fb-dot{width:8px;height:8px;border-radius:50%;background:var(--green);display:inline-block;margin-right:5px;animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.fb-dot.offline{background:var(--red);animation:none;}
+
+/* MISC */
+.flex{display:flex;}.fc{align-items:center;}.fb{justify-content:space-between;}
+.g8{gap:8px;}.g12{gap:12px;}.g16{gap:16px;}
+.mb8{margin-bottom:8px;}.mb12{margin-bottom:12px;}.mb16{margin-bottom:16px;}.mb20{margin-bottom:20px;}
+.mt8{margin-top:8px;}.mt12{margin-top:12px;}.mt16{margin-top:16px;}
+.f1{flex:1;}.fw{flex-wrap:wrap;}
+.bold{font-weight:600;}.muted{color:var(--text3);font-size:11px;}
+.gold{color:var(--gold);}.green{color:var(--green);}.red{color:var(--red);}.amber{color:var(--amber);}
+.table{width:100%;border-collapse:collapse;font-size:12.5px;}
+.table th{text-align:left;padding:8px 10px;color:var(--text3);font-weight:500;border-bottom:1px solid var(--border);}
+.table td{padding:8px 10px;border-bottom:1px solid rgba(255,255,255,.04);color:var(--text2);}
+.table tr:hover td{background:rgba(255,255,255,.02);}
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════ SIDEBAR ══ -->
+<div class="sidebar" id="sidebar">
+  <div class="logo">
+    <div class="logo-name">HKS Law OS</div>
+    <div class="logo-sub">Full Operating System · 2026</div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-section">Command Centre</div>
+    <div class="nav-item active" data-page="dashboard" onclick="nav('dashboard')"><span class="nav-icon">⚡</span>Dashboard</div>
+    <div class="nav-item" data-page="phases" onclick="nav('phases')"><span class="nav-icon">🗺</span>Growth Phases<span class="nav-badge" id="b-phases">0</span></div>
+    <div class="nav-item" data-page="ai-analysis" onclick="nav('ai-analysis')"><span class="nav-icon">🧠</span>AI Analysis<span class="nav-badge nav-badge-a">NEW</span></div>
+
+    <div class="nav-section">Growth Engine</div>
+    <div class="nav-item" data-page="growth" onclick="nav('growth')"><span class="nav-icon">🚀</span>Growth Hub<span class="nav-badge nav-badge-g">BIG</span></div>
+    <div class="nav-item" data-page="marketing" onclick="nav('marketing')"><span class="nav-icon">📣</span>Marketing Engine</div>
+    <div class="nav-item" data-page="referral" onclick="nav('referral')"><span class="nav-icon">🤝</span>Referral Engine</div>
+    <div class="nav-item" data-page="kpis" onclick="nav('kpis')"><span class="nav-icon">📊</span>KPI Tracker</div>
+
+    <div class="nav-section">Communication</div>
+    <div class="nav-item" data-page="gmail" onclick="nav('gmail')"><span class="nav-icon">📧</span>Gmail<span class="nav-badge" id="b-gmail">0</span></div>
+    <div class="nav-item" data-page="compose" onclick="nav('compose')"><span class="nav-icon">✍️</span>AI Compose</div>
+
+    <div class="nav-section">Operations</div>
+    <div class="nav-item" data-page="staff" onclick="nav('staff')"><span class="nav-icon">👥</span>Staff Hub</div>
+    <div class="nav-item" data-page="playbook" onclick="nav('playbook')"><span class="nav-icon">📖</span>Staff Playbook</div>
+    <div class="nav-item" data-page="compliance" onclick="nav('compliance')"><span class="nav-icon">⚖️</span>LAWPRO / LSO</div>
+    <div class="nav-item" data-page="sops" onclick="nav('sops')"><span class="nav-icon">📋</span>SOPs & Checklists</div>
+
+    <div class="nav-section">Intelligence</div>
+    <div class="nav-item" data-page="aiops" onclick="nav('aiops')"><span class="nav-icon">🤖</span>AI Operating Partner</div>
+    <div class="nav-item" data-page="backup" onclick="nav('backup')"><span class="nav-icon">☁️</span>Backup & Sync</div>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="sync-status sync-ok" id="sync-pill"><span class="fb-dot" id="fb-dot"></span><span id="sync-text">Firebase: Setting up…</span></div>
+    <div style="font-size:9.5px;color:var(--text3);text-align:center;margin-top:4px;">LSO & LAWPRO 2026 Compliant</div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════ MAIN ══ -->
+<div class="main">
+  <div class="topbar">
+    <div class="flex fc g12">
+      <div class="page-title" id="page-title">Dashboard</div>
+    </div>
+    <div class="topbar-right">
+      <div class="search-box"><span style="color:var(--text3);">🔍</span><input placeholder="Ask AI anything…" id="global-search" onkeydown="gsearch(event)"/></div>
+      <button class="btn btn-purple btn-sm" onclick="nav('ai-analysis')">🧠 AI Analyze</button>
+      <button class="btn btn-gold btn-sm" onclick="openCompose()">+ Draft Email</button>
+      <button class="btn btn-ghost btn-sm" onclick="syncAll()" title="Sync to Firebase + Sheets">☁️ Sync</button>
+    </div>
+  </div>
+
+  <div class="content-wrap">
+
+<!-- ═══ DASHBOARD ═══ -->
+<div class="section active" id="section-dashboard">
+  <div class="mb16">
+    <div style="font-size:21px;font-family:'Playfair Display',serif;margin-bottom:4px;">Good morning, HKS Law ⚖️</div>
+    <div style="font-size:12px;color:var(--text3);" id="dash-summary">Loading your day…</div>
+  </div>
+  <div class="grid-5 mb16" id="dash-metrics"></div>
+  <div class="grid-2 mb14">
+    <div class="card">
+      <div class="card-title">Today's Priority Actions</div>
+      <div id="dash-tasks"></div>
+      <button class="btn btn-ghost btn-sm mt8" onclick="nav('phases')">All phases →</button>
+    </div>
+    <div class="card">
+      <div class="card-title flex fb fc">
+        <span>AI Firm Score</span>
+        <span class="muted">Updated live</span>
+      </div>
+      <div id="firm-score-panel"></div>
+    </div>
+  </div>
+  <div class="grid-3 mb14">
+    <div class="card">
+      <div class="card-title">Phase Progress</div>
+      <div id="dash-phases"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Revenue Pipeline</div>
+      <div id="dash-pipeline"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Activity Feed</div>
+      <div id="dash-activity" style="max-height:260px;overflow-y:auto;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ GROWTH HUB ═══ -->
+<div class="section" id="section-growth">
+  <div style="font-size:20px;font-family:'Playfair Display',serif;margin-bottom:4px;">Growth Hub 🚀</div>
+  <div class="muted mb16">Every lever that grows HKS Law revenue — with AI guidance, scripts, and tracking</div>
+  <div class="tab-bar">
+    <div class="tab-btn active" onclick="growthtab('revenue')">💰 Revenue Levers</div>
+    <div class="tab-btn" onclick="growthtab('conversion')">🎯 Conversion System</div>
+    <div class="tab-btn" onclick="growthtab('pricing')">💎 Pricing Strategy</div>
+    <div class="tab-btn" onclick="growthtab('pipeline')">🔄 Sales Pipeline</div>
+    <div class="tab-btn" onclick="growthtab('networking')">🌐 Networking Plan</div>
+    <div class="tab-btn" onclick="growthtab('retention')">💛 Client Retention</div>
+    <div class="tab-btn" onclick="growthtab('expansion')">📈 Service Expansion</div>
+  </div>
+  <div id="growth-content"></div>
+</div>
+
+<!-- ═══ MARKETING ENGINE ═══ -->
+<div class="section" id="section-marketing">
+  <div style="font-size:20px;font-family:'Playfair Display',serif;margin-bottom:4px;">Marketing Engine 📣</div>
+  <div class="muted mb16">Campaigns, content calendar, Google presence, reviews, social, and ad strategy</div>
+  <div class="tab-bar">
+    <div class="tab-btn active" onclick="mktab('campaigns')">📬 Campaigns</div>
+    <div class="tab-btn" onclick="mktab('content')">📅 Content Calendar</div>
+    <div class="tab-btn" onclick="mktab('google')">🔍 Google Presence</div>
+    <div class="tab-btn" onclick="mktab('reviews')">⭐ Reviews System</div>
+    <div class="tab-btn" onclick="mktab('social')">📱 Social Media</div>
+    <div class="tab-btn" onclick="mktab('ads')">📢 Ads Strategy</div>
+  </div>
+  <div id="marketing-content"></div>
+</div>
+
+<!-- ═══ AI ANALYSIS ═══ -->
+<div class="section" id="section-ai-analysis">
+  <div style="font-size:20px;font-family:'Playfair Display',serif;margin-bottom:4px;">AI Analysis & Intelligence 🧠</div>
+  <div class="muted mb16">Deep analysis of your firm, practice areas, pipeline, and growth opportunities</div>
+  <div class="grid-3 mb14">
+    <div class="card card-gold">
+      <div class="card-title">Firm Health Score</div>
+      <div id="health-score-card"></div>
+      <button class="btn btn-gold btn-sm mt12" style="width:100%" onclick="runHealthAnalysis()">Run Full Analysis</button>
+    </div>
+    <div class="card">
+      <div class="card-title">Practice Area Performance</div>
+      <div id="practice-performance"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">AI Recommendations</div>
+      <div id="ai-recommendations" style="max-height:220px;overflow-y:auto;"></div>
+      <button class="btn btn-purple btn-sm mt8" style="width:100%" onclick="getRecommendations()">Refresh Recommendations</button>
+    </div>
+  </div>
+  <div class="grid-2 mb14">
+    <div class="card">
+      <div class="card-title">Deep Dive Analysis</div>
+      <div style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:12px;">
+        <button class="chip" onclick="analyze('revenue gap')">Revenue Gap Analysis</button>
+        <button class="chip" onclick="analyze('intake conversion')">Intake Conversion</button>
+        <button class="chip" onclick="analyze('referral ROI')">Referral ROI</button>
+        <button class="chip" onclick="analyze('time audit')">Time Audit</button>
+        <button class="chip" onclick="analyze('competitor positioning')">Competitor Positioning</button>
+        <button class="chip" onclick="analyze('service pricing')">Pricing Analysis</button>
+        <button class="chip" onclick="analyze('delegation readiness')">Delegation Readiness</button>
+        <button class="chip" onclick="analyze('marketing effectiveness')">Marketing Effectiveness</button>
+        <button class="chip" onclick="analyze('client lifetime value')">Client Lifetime Value</button>
+        <button class="chip" onclick="analyze('growth bottleneck')">Growth Bottleneck</button>
+      </div>
+      <textarea id="analysis-input" rows="3" placeholder="Custom analysis request…e.g. 'Analyze my real estate practice and tell me the 3 biggest revenue opportunities in KW right now'"></textarea>
+      <button class="btn btn-purple mt8" style="width:100%" onclick="runAnalysis()">🧠 Run AI Analysis</button>
+    </div>
+    <div class="card" style="padding:0;overflow:hidden;">
+      <div style="padding:14px 18px;border-bottom:1px solid var(--border);font-size:12px;font-weight:600;color:var(--text2);">📊 Analysis Result</div>
+      <div style="padding:16px;max-height:360px;overflow-y:auto;" id="analysis-output">
+        <div style="text-align:center;padding:40px 16px;color:var(--text3);">
+          <div style="font-size:28px;margin-bottom:10px;">🧠</div>
+          <div>Select an analysis type or enter a custom question above</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ PHASES ═══ -->
+<div class="section" id="section-phases">
+  <div class="flex fc fb mb16">
+    <div>
+      <div style="font-size:20px;font-family:'Playfair Display',serif;">Growth Phases</div>
+      <div class="muted mt8">All 4 phases to passive management · Saved to Firebase automatically</div>
+    </div>
+    <div class="flex g8">
+      <span class="chip active" onclick="filterP('all')">All</span>
+      <span class="chip" onclick="filterP('lawyer')">Lawyer Only</span>
+      <span class="chip" onclick="filterP('staff')">Staff</span>
+      <span class="chip" onclick="filterP('auto')">Automatable</span>
+    </div>
+  </div>
+  <div id="phases-content"></div>
+</div>
+
+<!-- ═══ REFERRAL ENGINE ═══ -->
+<div class="section" id="section-referral">
+  <div class="flex fc fb mb16">
+    <div><div style="font-size:20px;font-family:'Playfair Display',serif;">Referral Engine 🤝</div><div class="muted">Track every partner, outreach cadence, and revenue attribution</div></div>
+    <button class="btn btn-gold btn-sm" onclick="addPartner()">+ Add Partner</button>
+  </div>
+  <div class="grid-4 mb14">
+    <div class="metric-card"><div class="metric-label">Active Partners</div><div class="metric-value" id="ref-count">0</div></div>
+    <div class="metric-card"><div class="metric-label">Outreach Due</div><div class="metric-value amber" id="ref-due">0</div></div>
+    <div class="metric-card"><div class="metric-label">Referrals In</div><div class="metric-value green" id="ref-in">0</div></div>
+    <div class="metric-card"><div class="metric-label">Est. Revenue</div><div class="metric-value gold" id="ref-rev">$0</div></div>
+  </div>
+  <div class="card mb14">
+    <div class="card-title">Partner Tracker</div>
+    <div id="partner-table"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Outreach Script Vault</div>
+    <div class="grid-2" id="outreach-scripts"></div>
+  </div>
+</div>
+
+<!-- ═══ KPI TRACKER ═══ -->
+<div class="section" id="section-kpis">
+  <div style="font-size:20px;font-family:'Playfair Display',serif;margin-bottom:4px;">KPI Tracker 📊</div>
+  <div class="muted mb16">All data syncs to Firebase and Google Sheets automatically</div>
+  <div class="grid-4 mb14" id="kpi-metrics"></div>
+  <div class="grid-2 mb14">
+    <div class="card">
+      <div class="card-title">Log This Week</div>
+      <div class="form-group"><label class="form-label">Week of</label><input type="text" id="kpi-week" placeholder="e.g. March 24, 2026"/></div>
+      <div class="grid-2" style="gap:10px;">
+        <div class="form-group"><label class="form-label">New leads</label><input type="number" id="kpi-leads" placeholder="0" min="0"/></div>
+        <div class="form-group"><label class="form-label">Consultations</label><input type="number" id="kpi-consults" placeholder="0" min="0"/></div>
+        <div class="form-group"><label class="form-label">Retainers signed</label><input type="number" id="kpi-retained" placeholder="0" min="0"/></div>
+        <div class="form-group"><label class="form-label">Revenue ($)</label><input type="number" id="kpi-revenue" placeholder="0" min="0"/></div>
+        <div class="form-group"><label class="form-label">RE files closed</label><input type="number" id="kpi-re" placeholder="0" min="0"/></div>
+        <div class="form-group"><label class="form-label">Immigration files</label><input type="number" id="kpi-imm" placeholder="0" min="0"/></div>
+      </div>
+      <div class="form-group"><label class="form-label">Notes / wins this week</label><textarea id="kpi-notes" rows="2" placeholder="What worked? What didn't?"></textarea></div>
+      <button class="btn btn-gold" style="width:100%" onclick="logKPI()">📊 Log + Sync to Firebase & Sheets</button>
+    </div>
+    <div class="card">
+      <div class="card-title">Weekly History</div>
+      <div id="kpi-history" style="max-height:380px;overflow-y:auto;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ GMAIL ═══ -->
+<div class="section" id="section-gmail">
+  <div class="flex fc fb mb16">
+    <div><div style="font-size:20px;font-family:'Playfair Display',serif;">Gmail Integration 📧</div><div class="muted">Read, categorize, draft replies with AI — save to Gmail Drafts</div></div>
+    <div class="flex g8">
+      <button class="btn btn-ghost btn-sm" onclick="connectGmail()">🔗 Connect Gmail</button>
+      <button class="btn btn-gold btn-sm" onclick="openCompose()">+ New Draft</button>
+    </div>
+  </div>
+  <div class="grid-2">
+    <div class="card" style="padding:0;overflow:hidden;">
+      <div style="padding:14px 18px;border-bottom:1px solid var(--border);font-size:12.5px;font-weight:600;color:var(--text2);">📥 Inbox</div>
+      <div id="gmail-list"></div>
+      <div id="gmail-setup" style="padding:36px;text-align:center;color:var(--text3);">
+        <div style="font-size:30px;margin-bottom:10px;">📧</div>
+        <div style="font-size:13px;color:var(--text2);margin-bottom:8px;">Connect Gmail to read emails & save AI drafts</div>
+        <button class="btn btn-gold" onclick="connectGmail()">Connect Gmail OAuth</button>
+        <div class="muted mt8">Read + compose scopes only · LAWPRO compliant</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Email Categories</div>
+      <div id="email-cats"></div>
+      <div class="divider"></div>
+      <div class="card-title">Saved Drafts</div>
+      <div id="saved-drafts-list"><div class="muted">No drafts yet.</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ COMPOSE ═══ -->
+<div class="section" id="section-compose">
+  <div style="font-size:20px;font-family:'Playfair Display',serif;margin-bottom:4px;">AI Email Composer ✍️</div>
+  <div class="muted mb16">30+ templates · AI personalization · LAWPRO-compliant · Saves to Gmail Drafts & Firebase</div>
+  <div class="grid-2">
+    <div>
+      <div class="card mb12">
+        <div class="card-title">1. Choose Template</div>
+        <select id="email-template" onchange="loadTemplate()">
+          <option value="">— Select template —</option>
+          <optgroup label="🤝 Referral Outreach">
+            <option value="realtor-intro">Realtor — Introduction & Partnership</option>
+            <option value="realtor-followup">Realtor — Follow-Up (Post Meeting)</option>
+            <option value="realtor-deal-done">Realtor — Thank You (Deal Closed)</option>
+            <option value="mortgage-intro">Mortgage Broker — Introduction</option>
+            <option value="immigration-agent">Immigration Consultant — Partnership</option>
+            <option value="contractor">Contractor / Restoration — Insurance Referral</option>
+            <option value="financial-planner">Financial Planner — Estate/RE Referral</option>
+            <option value="divorce-mediator">Family Mediator — Legal Referral</option>
+          </optgroup>
+          <optgroup label="📥 Lead Intake">
+            <option value="lead-d1">Lead Follow-up — Day 1 (First Touch)</option>
+            <option value="lead-d3">Lead Follow-up — Day 3</option>
+            <option value="lead-d7">Lead Follow-up — Day 7 (Final)</option>
+            <option value="consult-confirm">Consultation Confirmation</option>
+            <option value="consult-no-show">Consultation No-Show Re-book</option>
+            <option value="retainer-signed">Retainer Signed — Welcome & Next Steps</option>
+          </optgroup>
+          <optgroup label="🏠 Real Estate">
+            <option value="re-file-open">RE — File Opened</option>
+            <option value="re-doc-request">RE — Documents Needed</option>
+            <option value="re-closing-soon">RE — Closing in 5 Days</option>
+            <option value="re-reporting">RE — Reporting Letter (Post-Close)</option>
+            <option value="re-status-cert">RE — Status Certificate Request (Condo)</option>
+          </optgroup>
+          <optgroup label="✈️ Immigration">
+            <option value="imm-file-open">Immigration — File Opened</option>
+            <option value="imm-docs">Immigration — Document Request</option>
+            <option value="imm-submitted">Immigration — Application Submitted</option>
+            <option value="imm-update">Immigration — Status Update</option>
+            <option value="imm-decision">Immigration — Decision Received</option>
+          </optgroup>
+          <optgroup label="🏢 Landlord & Tenant">
+            <option value="lt-file-open">L&T — File Opened</option>
+            <option value="lt-hearing-prep">L&T — Hearing Prep (Client)</option>
+            <option value="lt-outcome">L&T — Hearing Outcome</option>
+          </optgroup>
+          <optgroup label="🛡️ Insurance">
+            <option value="ins-file-open">Insurance — File Opened</option>
+            <option value="ins-demand">Insurance — Demand Letter (Client CC)</option>
+            <option value="ins-denial-response">Insurance — Responding to Denial</option>
+          </optgroup>
+          <optgroup label="💛 Client Care">
+            <option value="past-client">Past Client — Reactivation</option>
+            <option value="past-client-referral">Past Client — Referral Ask</option>
+            <option value="review-request">Review Request (Post File Close)</option>
+            <option value="holiday-checkin">Holiday / Seasonal Check-In</option>
+          </optgroup>
+          <optgroup label="👥 Staff">
+            <option value="staff-weekly">Staff — Weekly Priorities</option>
+            <option value="staff-sop">Staff — SOP Delegation Package</option>
+            <option value="staff-intake-brief">Staff — Intake Script Brief</option>
+            <option value="staff-correction">Staff — Performance Coaching Note</option>
+          </optgroup>
+        </select>
+      </div>
+      <div class="card mb12">
+        <div class="card-title">2. Personalize</div>
+        <div class="form-group"><label class="form-label">To (Name)</label><input type="text" id="c-name" placeholder="Sarah Chen"/></div>
+        <div class="form-group"><label class="form-label">To (Email)</label><input type="email" id="c-email" placeholder="sarah@remax.ca"/></div>
+        <div class="form-group"><label class="form-label">Context (AI uses this to personalize)</label><textarea id="c-context" rows="3" placeholder="e.g. Met at KW Chamber event Tuesday. She closes 6 deals/month, mentioned frustrated with slow lawyers…"></textarea></div>
+        <button class="btn btn-gold" style="width:100%" onclick="generateEmail()">🤖 Generate with AI</button>
+      </div>
+    </div>
+    <div class="card" style="display:flex;flex-direction:column;">
+      <div class="card-title">3. Review & Action</div>
+      <div class="form-group"><label class="form-label">Subject</label><input type="text" id="c-subject"/></div>
+      <div class="form-group" style="flex:1"><label class="form-label">Body</label><textarea id="c-body" rows="18" placeholder="Your email appears here after clicking Generate…"></textarea></div>
+      <div id="c-compliance" style="display:none;margin-bottom:10px;padding:9px 12px;background:var(--amber-bg);border:1px solid rgba(232,168,76,.3);border-radius:var(--radius);font-size:11.5px;color:var(--amber);"></div>
+      <div class="flex g8">
+        <button class="btn btn-green flex-1" onclick="saveDraft()">💾 Save to Gmail Drafts</button>
+        <button class="btn btn-ghost btn-sm" onclick="copyEmail()">📋 Copy</button>
+        <button class="btn btn-ghost btn-sm" onclick="clearCompose()">✕</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ STAFF HUB ═══ -->
+<div class="section" id="section-staff">
+  <div style="font-size:20px;font-family:'Playfair Display',serif;margin-bottom:4px;">Staff Hub 👥</div>
+  <div class="muted mb16">Manage staff, delegate packages, track training, email briefings</div>
+  <div class="grid-2 mb14">
+    <div class="card">
+      <div class="card-title flex fb fc"><span>Staff Members</span><button class="btn btn-gold btn-sm" onclick="addStaff()">+ Add</button></div>
+      <div id="staff-list"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Quick Delegation</div>
+      <div class="form-group"><label class="form-label">Staff member</label><select id="del-staff"><option value="">Select…</option></select></div>
+      <div class="form-group"><label class="form-label">Delegation package</label>
+        <select id="del-pkg">
+          <option value="intake-training">📞 Intake Script & Call Guide</option>
+          <option value="re-sop">🏠 Real Estate Closing Checklist</option>
+          <option value="doc-request">📄 Document Request Templates</option>
+          <option value="follow-up-system">📅 7-Day Follow-Up System</option>
+          <option value="referral-tracking">🤝 Referral Partner Log</option>
+          <option value="lt-checklist">🏢 L&T Hearing Checklist</option>
+          <option value="immigration-checklist">✈️ Immigration File Checklist</option>
+          <option value="weekly-tasks">📋 Weekly Task Priorities</option>
+          <option value="client-updates">💬 Client Update Protocol</option>
+          <option value="review-requests">⭐ Google Review Request System</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Notes</label><textarea id="del-notes" rows="2"></textarea></div>
+      <button class="btn btn-gold" style="width:100%" onclick="sendDelegate()">📧 Generate Delegation Email</button>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Delegation Map — Staff vs. Lawyer (LSO Rule 5.1)</div>
+    <div class="grid-2" id="delegation-map"></div>
+  </div>
+</div>
+
+<!-- ═══ STAFF PLAYBOOK ═══ -->
+<div class="section" id="section-playbook">
+  <div style="font-size:20px;font-family:'Playfair Display',serif;margin-bottom:4px;">Staff Answer Playbook 📖</div>
+  <div class="muted mb16">Every client question staff will face — with approved answers that never cross into legal advice</div>
+  <div class="tab-bar">
+    <div class="tab-btn active" onclick="playtab('intake')">📞 Intake Calls</div>
+    <div class="tab-btn" onclick="playtab('re')">🏠 Real Estate</div>
+    <div class="tab-btn" onclick="playtab('immigration')">✈️ Immigration</div>
+    <div class="tab-btn" onclick="playtab('lt')">🏢 L&T</div>
+    <div class="tab-btn" onclick="playtab('insurance')">🛡️ Insurance</div>
+    <div class="tab-btn" onclick="playtab('objections')">💬 Objections / Pushback</div>
+    <div class="tab-btn" onclick="playtab('difficult')">🚨 Difficult Situations</div>
+  </div>
+  <div id="playbook-content"></div>
+</div>
+
+<!-- ═══ COMPLIANCE ═══ -->
+<div class="section" id="section-compliance">
+  <div style="font-size:20px;font-family:'Playfair Display',serif;margin-bottom:4px;">LAWPRO & LSO Compliance ⚖️</div>
+  <div class="muted mb16">Ontario 2026 · Law Society Act · Rules of Professional Conduct · LAWPRO Risk Management</div>
+  <div class="grid-2 mb14">
+    <div class="card"><div class="card-title">LSO 2026 Compliance Checklist</div><div id="lso-list"></div></div>
+    <div class="card"><div class="card-title">LAWPRO Risk Management</div><div id="lawpro-list"></div></div>
+  </div>
+  <div class="card mb14"><div class="card-title">Practice Area Compliance</div><div class="grid-2" id="practice-compliance"></div></div>
+  <div class="card"><div class="card-title">Ontario 2026 Updates</div><div id="on-updates"></div></div>
+</div>
+
+<!-- ═══ SOPs ═══ -->
+<div class="section" id="section-sops">
+  <div style="font-size:20px;font-family:'Playfair Display',serif;margin-bottom:4px;">SOPs & Checklists 📋</div>
+  <div class="muted mb16">Implementation-ready procedures · Email to staff directly</div>
+  <div class="grid-2" id="sops-grid"></div>
+</div>
+
+<!-- ═══ AI OPS ═══ -->
+<div class="section" id="section-aiops">
+  <div style="font-size:20px;font-family:'Playfair Display',serif;margin-bottom:4px;">AI Operating Partner 🤖</div>
+  <div class="muted mb16">Your 24/7 law firm strategist — scripts, SOPs, analysis, Ontario 2026 compliance guidance</div>
+  <div class="grid-2">
+    <div>
+      <div class="card mb12">
+        <div class="card-title">Quick Prompts</div>
+        <div style="display:flex;flex-wrap:wrap;gap:7px;" id="quick-prompts"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Ask Anything</div>
+        <textarea id="ai-input" rows="4" placeholder="e.g. How do I convert more real estate leads in Kitchener-Waterloo in 2026?"></textarea>
+        <button class="btn btn-gold mt8" style="width:100%" onclick="askAI()">Ask AI Operating Partner</button>
+      </div>
+    </div>
+    <div class="card" style="padding:0;overflow:hidden;display:flex;flex-direction:column;">
+      <div style="padding:13px 17px;border-bottom:1px solid var(--border);font-size:12px;font-weight:600;color:var(--text2);">🤖 AI Response</div>
+      <div style="padding:16px;flex:1;overflow-y:auto;max-height:500px;" id="ai-output">
+        <div style="text-align:center;padding:40px 16px;color:var(--text3);">
+          <div style="font-size:26px;margin-bottom:10px;">⚖️</div>
+          <div>HKS Law AI Operating Partner is ready.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ BACKUP & SYNC ═══ -->
+<div class="section" id="section-backup">
+  <div style="font-size:20px;font-family:'Playfair Display',serif;margin-bottom:4px;">Backup & Sync ☁️</div>
+  <div class="muted mb16">Firebase Firestore (real-time) + Google Sheets (daily export) · All data backed up automatically</div>
+  <div class="grid-2 mb14">
+    <div class="card">
+      <div class="card-title">Firebase Configuration</div>
+      <div class="form-group"><label class="form-label">Firebase Project ID</label><input type="text" id="fb-project-id" placeholder="hkslaw-os" /></div>
+      <div class="form-group"><label class="form-label">Firebase API Key</label><input type="text" id="fb-api-key" placeholder="AIzaSy…" /></div>
+      <div class="form-group"><label class="form-label">Firebase Auth Domain</label><input type="text" id="fb-auth-domain" placeholder="hkslaw-os.firebaseapp.com" /></div>
+      <button class="btn btn-gold mb12" style="width:100%" onclick="initFirebase()">🔥 Connect Firebase</button>
+      <div id="fb-status" class="muted">Not connected. Enter credentials above.</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Google Sheets Configuration</div>
+      <div class="form-group"><label class="form-label">Spreadsheet ID</label><input type="text" id="gs-sheet-id" placeholder="1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgVE2upms"/></div>
+      <div class="form-group"><label class="form-label">Google Sheets API Key</label><input type="text" id="gs-api-key" placeholder="AIzaSy…"/></div>
+      <button class="btn btn-green mb12" style="width:100%" onclick="initSheets()">📊 Connect Google Sheets</button>
+      <button class="btn btn-blue btn-sm" style="width:100%" onclick="exportToSheets()">⬆️ Export All Data to Sheets Now</button>
+      <div id="gs-status" class="muted mt8">Not connected.</div>
+    </div>
+  </div>
+  <div class="card mb14">
+    <div class="card-title">Setup Instructions</div>
+    <div class="grid-2">
+      <div>
+        <div style="font-size:12px;font-weight:600;color:var(--gold);margin-bottom:10px;">🔥 Firebase Setup (5 minutes)</div>
+        <div style="font-size:11.5px;color:var(--text2);line-height:1.8;">
+          1. Go to <strong style="color:var(--text);">console.firebase.google.com</strong><br/>
+          2. Click "Add Project" → name it <strong style="color:var(--text);">hkslaw-os</strong><br/>
+          3. Enable Firestore Database (test mode to start)<br/>
+          4. Go to Project Settings → Your apps → Web app<br/>
+          5. Copy the config values into the fields above<br/>
+          6. All task completions, KPIs, partners sync instantly<br/>
+          <br/>
+          <span style="color:var(--green);">✓ Free tier: 1GB storage, 50K reads/day</span>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:12px;font-weight:600;color:var(--green);margin-bottom:10px;">📊 Google Sheets Setup (3 minutes)</div>
+        <div style="font-size:11.5px;color:var(--text2);line-height:1.8;">
+          1. Create a new Google Sheet at <strong style="color:var(--text);">sheets.google.com</strong><br/>
+          2. Name it <strong style="color:var(--text);">HKS Law — Operating Data</strong><br/>
+          3. Share it with your email + "Editor" access<br/>
+          4. Go to <strong style="color:var(--text);">console.cloud.google.com</strong><br/>
+          5. Enable Sheets API → Create API Key<br/>
+          6. Copy Sheet ID from URL and API key above<br/>
+          <br/>
+          <span style="color:var(--green);">✓ Weekly KPIs, partners, tasks all export automatically</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title flex fb fc"><span>Sync Log</span><button class="btn btn-ghost btn-sm" onclick="syncAll()">☁️ Sync Now</button></div>
+    <div id="sync-log" style="max-height:200px;overflow-y:auto;font-size:12px;color:var(--text3);"><div class="muted">No syncs yet.</div></div>
+  </div>
+</div>
+
+  </div><!-- content-wrap -->
+</div><!-- main -->
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title" id="modal-title">—</div><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="modal-body" id="modal-body"></div>
+    <div class="modal-footer" id="modal-footer"></div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script src="app.js"></script>
+</body>
+</html>
